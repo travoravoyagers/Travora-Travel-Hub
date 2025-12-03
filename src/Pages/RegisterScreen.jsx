@@ -29,6 +29,8 @@ const RegisterScreen = () => {
             style={{ color: "#12213e" }}
           />
 
+          <input type="number" placeholder="Phone Number" className="p-3 rounded-lg border outline-none" />
+
           <input
             type="password"
             placeholder="Password"
