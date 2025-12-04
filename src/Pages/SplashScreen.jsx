@@ -6,8 +6,15 @@ const SplashScreen = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigate("/login");
-    }, 3200); 
+      const token = localStorage.getItem("token");
+
+      if (token) {
+        navigate("/home"); // User already logged in
+      } else {
+        navigate("/login"); // No token → Login
+      }
+
+    }, 3200);
 
     return () => clearTimeout(timer);
   }, [navigate]);
