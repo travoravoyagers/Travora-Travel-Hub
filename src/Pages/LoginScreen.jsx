@@ -7,52 +7,61 @@ const LoginScreen = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const validateEmail = (emailValue) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailValue)) {
+      setEmailError("Enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
+
   const handleLogin = async () => {
-  setError("");
+    setError("");
 
-  if (!email || !password) {
-    return setError("Please fill all fields");
-  }
+    validateEmail(email);
+    if (emailError) return;
 
-  try {
-    setLoading(true);
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setLoading(false);
-      return setError(data.message || "Invalid credentials");
+    if (!email || !password) {
+      return setError("Please fill all fields");
     }
 
-    // Save JWT token
-    localStorage.setItem("token", data.token);
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Redirect to Home
-    navigate("/home");
+      const data = await res.json();
 
-  } catch (err) {
-    setError("Something went wrong, try again");
-  } finally {
-    setLoading(false);
-  }
-};
+      if (!res.ok) {
+        setLoading(false);
+        return setError(data.message || "Invalid credentials");
+      }
 
+      localStorage.setItem("token", data.token);
+      navigate("/home");
+
+    } catch (err) {
+      setError("Something went wrong, try again");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex justify-center items-center min-h-screen"
       style={{ backgroundColor: "#fcf9f2" }}
     >
       <div className="w-80 bg-white p-6 rounded-xl shadow-md">
-        <h2 
-          className="text-2xl font-bold text-center mb-6" 
+        <h2
+          className="text-2xl font-bold text-center mb-6"
           style={{ color: "#12213e" }}
         >
           Login
@@ -66,9 +75,17 @@ const LoginScreen = () => {
             className="p-3 rounded-lg border outline-none"
             style={{ color: "#12213e" }}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEmailError(""); // clear err while typing
+            }}
+            onBlur={() => validateEmail(email)}
             required
           />
+
+          {emailError && (
+            <p className="text-red-500 text-sm">{emailError}</p>
+          )}
 
           <input
             type="password"
@@ -95,7 +112,7 @@ const LoginScreen = () => {
 
         <p className="text-sm text-center mt-4" style={{ color: "#12213e" }}>
           Don’t have an account?{" "}
-          <Link 
+          <Link
             className="font-semibold underline"
             style={{ color: "#12213e" }}
             to="/register"
