@@ -8,13 +8,14 @@ const RegisterScreen = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
+    mobile: "",
     password: "",
     confirmPassword: "",
   });
 
   const [emailError, setEmailError] = useState("");
   const [nameError, setNameError] = useState("");
+  const [mobileError, setMobileError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,29 +25,25 @@ const RegisterScreen = () => {
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address");
-    } else {
-      setEmailError("");
-    }
+    setEmailError(emailRegex.test(email) ? "" : "Please enter a valid email address");
   };
 
   const validateName = (name) => {
-    if (!name.trim()) {
-      setNameError("Full name is required");
-    } else {
-      setNameError("");
-    }
+    setNameError(name.trim() ? "" : "Full name is required");
+  };
+
+  const validateMobile = (mobile) => {
+    setMobileError(/^\d{10}$/.test(mobile) ? "" : "Enter a valid 10-digit mobile number");
   };
 
   const handleRegister = async () => {
     setError("");
 
-    // Validate both name & email
     validateName(formData.name);
     validateEmail(formData.email);
+    validateMobile(formData.mobile);
 
-    if (nameError || emailError) return;
+    if (nameError || emailError || mobileError) return;
 
     if (formData.password.length < 8) {
       return setError("Password must be at least 8 characters long.");
@@ -59,6 +56,7 @@ const RegisterScreen = () => {
     const payload = {
       name: formData.name,
       email: formData.email,
+      mobile: formData.mobile,
       password: formData.password,
     };
 
@@ -74,7 +72,6 @@ const RegisterScreen = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        setLoading(false);
         return setError(data.message || "Registration failed");
       }
 
@@ -82,7 +79,7 @@ const RegisterScreen = () => {
       navigate("/login");
 
     } catch (err) {
-      console.log(err);
+      console.error(err);
       setError("Something went wrong");
     } finally {
       setLoading(false);
@@ -118,10 +115,7 @@ const RegisterScreen = () => {
             style={{ color: "#12213e" }}
             required
           />
-
-          {nameError && (
-            <p className="text-red-600 text-sm">{nameError}</p>
-          )}
+          {nameError && <p className="text-red-600 text-sm">{nameError}</p>}
 
           <input
             type="email"
@@ -137,19 +131,22 @@ const RegisterScreen = () => {
             style={{ color: "#12213e" }}
             required
           />
-
-          {emailError && (
-            <p className="text-red-600 text-sm">{emailError}</p>
-          )}
+          {emailError && <p className="text-red-600 text-sm">{emailError}</p>}
 
           <input
-            type="number"
-            name="phone"
-            placeholder="Phone Number (Not required for now)"
-            value={formData.phone}
-            onChange={handleChange}
+            type="tel"
+            name="mobile"
+            placeholder="Mobile Number"
+            value={formData.mobile}
+            onChange={(e) => {
+              handleChange(e);
+              setMobileError("");
+            }}
+            onBlur={() => validateMobile(formData.mobile)}
             className="p-3 rounded-lg border outline-none"
+            required
           />
+          {mobileError && <p className="text-red-600 text-sm">{mobileError}</p>}
 
           <input
             type="password"
