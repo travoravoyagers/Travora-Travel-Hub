@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaBars } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const MyProfile = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
-  // Dummy
+  const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // Dummy posts
   const posts = [
     {
       id: 1,
@@ -26,23 +32,66 @@ const MyProfile = () => {
     alert(`Open post ${post.id}`);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  // Fetch logged-in user from backend
+  useEffect(() => {
+    const fetchMe = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      try {
+        setLoadingUser(true);
+
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        // console.log("ME API RESPONSE:", data);
+
+
+        if (!res.ok) {
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
+
+        setUser(data.user);
+      } catch (err) {
+        console.log(err);
+        navigate("/login");
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchMe();
+  }, [API_URL, navigate]);
+
   return (
     <div
       className="w-full max-w-5xl mx-auto px-4 pb-20 flex gap-6"
       style={{ color: "#12213e" }}
     >
-     
       <div className="flex-1">
-
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Profile</h2>
 
           {/* Hamburger -> only on mobile */}
-          <button
-            className="md:hidden"
-            onClick={() => setMenuOpen(true)}
-          >
+          <button className="md:hidden" onClick={() => setMenuOpen(true)}>
             <FaBars className="text-2xl" />
           </button>
         </div>
@@ -55,19 +104,40 @@ const MyProfile = () => {
             className="w-16 h-16 rounded-full object-cover border-2"
             style={{ borderColor: "#12213e" }}
           />
+
           <div>
-            <div className="font-semibold text-lg">User Name</div>
-            <div className="text-sm opacity-80">Status: On Trip 🌍</div>
+            {loadingUser ? (
+              <div className="text-sm opacity-80">Loading profile...</div>
+            ) : (
+              <>
+                <div className="font-semibold text-lg">
+                  {user?.name || "User"}
+                </div>
+                <div className="text-sm opacity-80">
+                  {user?.email || "No email"}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium shadow"
-          style={{ backgroundColor: "#12213e", color: "#fcf9f2" }}
-          onClick={() => handleMenuClick("Edit Details")}
-        >
-          Edit Profile
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="px-4 py-2 rounded-lg text-sm font-medium shadow"
+            style={{ backgroundColor: "#12213e", color: "#fcf9f2" }}
+            onClick={() => handleMenuClick("Edit Details")}
+          >
+            Edit Profile
+          </button>
+
+          <button
+            className="px-4 py-2 rounded-lg text-sm font-medium shadow"
+            style={{ backgroundColor: "#12213e", color: "#fcf9f2" }}
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        </div>
 
         {/* My Posts Section */}
         <h3 className="font-semibold mt-6 mb-3 text-lg">My Posts</h3>
@@ -89,7 +159,7 @@ const MyProfile = () => {
         </div>
       </div>
 
-      {/* RIGHT: Sidebar (always visible on desktop) */}
+      {/* RIGHT: Sidebar (desktop) */}
       <aside
         className="hidden md:flex flex-col gap-4 w-56 p-4 rounded-xl shadow-md h-fit"
         style={{ backgroundColor: "#f5efe3" }}
@@ -114,10 +184,12 @@ const MyProfile = () => {
         </button>
       </aside>
 
-      {/* MOBILE SLIDE-IN MENU (right side) */}
+      {/* MOBILE SLIDE-IN MENU */}
       <div
         className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
-          menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          menuOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
       >
         {/* overlay */}
@@ -152,7 +224,13 @@ const MyProfile = () => {
           >
             Feedback
           </button>
-       
+
+          <button
+            className="block w-full text-left mt-6 font-semibold"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>
