@@ -22,7 +22,7 @@ const SplashScreen = () => {
   return (
     <div className="splash-container">
       <img
-        src="/logo-transparent.png"
+        src="/logo.png"
         alt="Travora Logo"
         className="splash-logo"
       />
