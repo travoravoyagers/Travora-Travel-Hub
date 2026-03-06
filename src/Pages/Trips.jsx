@@ -4,6 +4,8 @@ import axios from "axios";
 
 const Trips = () => {
 
+  const API_URL = import.meta.env.VITE_API_URL;
+  
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [ongoingTrips, setOngoingTrips] = useState([]);
   const [historyTrips, setHistoryTrips] = useState([]);
@@ -29,7 +31,7 @@ const Trips = () => {
 
   const fetchTrips = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/trips", {
+      const res = await axios.get(`${API_URL}/api/trips`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -124,7 +126,7 @@ const Trips = () => {
       }
 
       await axios.post(
-        "http://localhost:4000/api/trips",
+        `${API_URL}/api/trips`,
         formData,
         {
           headers: {
@@ -165,7 +167,7 @@ const Trips = () => {
     try {
 
       await axios.delete(
-        `http://localhost:4000/api/trips/${tripId}`,
+        `${API_URL}/api/trips/${tripId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -182,7 +184,7 @@ const Trips = () => {
 
   const editTrip = (trip) => {
 
-    alert("Edit trip clicked")
+    alert("Edit trip")
   };
 
   return (
