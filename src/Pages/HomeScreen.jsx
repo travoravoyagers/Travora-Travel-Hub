@@ -45,11 +45,12 @@ const HomeScreen = () => {
         className="fixed top-0 left-0 w-full z-50 px-4 pt-4"
       >
         <div className="glass rounded-2xl p-4 flex justify-between items-center shadow-lg border border-white/40">
+          
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-inner">
               <span className="text-white font-bold text-xl">T</span>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent tracking-tight">Travora</h1>
+            {/* <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent tracking-tight">Travora</h1> */}
           </div>
 
           <div className="flex gap-2 items-center">
