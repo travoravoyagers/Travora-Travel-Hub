@@ -265,81 +265,18 @@ const TripDetails = () => {
                    </div>
                 )}
 
-                {/* Editor / Add Button */}
-                <AnimatePresence mode="wait">
-                  {isEditing ? (
-                     <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-[#fcf9f2] p-5 rounded-[1.5rem] border border-[#238a7e]/20 space-y-4 overflow-hidden"
-                     >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs font-black uppercase tracking-widest text-[#238a7e]">New Entry</span>
-                          <button onClick={() => setEditingDay(null)} className="p-1.5 hover:bg-black/5 rounded-full transition-colors">
-                            <X className="w-4 h-4 text-[#264653]" />
-                          </button>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1">Type (Opt)</label>
-                            <select 
-                              className="w-full bg-white p-3 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors"
-                              value={entryForm.type}
-                              onChange={e => setEntryForm({...entryForm, type: e.target.value})}
-                            >
-                              <option value="">Select Type</option>
-                              {Object.keys(typeIcons).map(t => <option key={t} value={t}>{typeIcons[t]} {t}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1">Time (Opt)</label>
-                            <input 
-                              type="time" 
-                              className="w-full bg-white p-3 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors"
-                              value={entryForm.time}
-                              onChange={e => setEntryForm({...entryForm, time: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1">Description</label>
-                          <textarea 
-                            placeholder="What's happening?"
-                            className="w-full bg-white p-4 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors resize-none h-24"
-                            value={entryForm.description}
-                            onChange={e => setEntryForm({...entryForm, description: e.target.value})}
-                          />
-                        </div>
-                        
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleAddEntry(dayNum)}
-                          className="w-full py-4 bg-[#238a7e] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#238a7e]/20"
-                        >
-                          Save Entry
-                        </motion.button>
-                     </motion.div>
-                  ) : (
-                     <motion.button 
-                       initial={{ opacity: 0 }}
-                       animate={{ opacity: 1 }}
-                       exit={{ opacity: 0 }}
-                       whileHover={{ scale: 1.01 }}
-                       whileTap={{ scale: 0.99 }}
-                       onClick={() => {
-                         setEditingDay(dayNum);
-                         setEntryForm({ type: "", time: "", description: "" });
-                       }}
-                       className="w-full py-4 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 text-[#264653]/60 rounded-2xl hover:border-[#238a7e]/50 hover:text-[#238a7e] hover:bg-[#238a7e]/5 transition-all text-sm font-bold"
-                     >
-                       <Plus className="w-5 h-5" /> Add Entry
-                     </motion.button>
-                  )}
-                </AnimatePresence>
+                {/* Add Button */}
+                <motion.button 
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => {
+                    setEditingDay(dayNum);
+                    setEntryForm({ type: "", time: "", description: "" });
+                  }}
+                  className="w-full py-4 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 text-[#264653]/60 rounded-2xl hover:border-[#238a7e]/50 hover:text-[#238a7e] hover:bg-[#238a7e]/5 transition-all text-sm font-bold"
+                >
+                  <Plus className="w-5 h-5" /> Add Entry
+                </motion.button>
 
               </motion.div>
             );
@@ -347,6 +284,76 @@ const TripDetails = () => {
 
         </div>
       </div>
+
+      {/* Editor Modal */}
+      <AnimatePresence>
+        {editingDay !== null && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingDay(null)}
+              className="absolute inset-0 bg-[#264653]/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-[#fcf9f2] rounded-[1.5rem] p-6 shadow-2xl space-y-5"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-black uppercase tracking-widest text-[#238a7e]">New Entry (Day {editingDay})</span>
+                <button onClick={() => setEditingDay(null)} className="p-1.5 hover:bg-black/5 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-[#264653]" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1.5">Type (Opt)</label>
+                  <select 
+                    className="w-full bg-white p-3.5 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors"
+                    value={entryForm.type}
+                    onChange={e => setEntryForm({...entryForm, type: e.target.value})}
+                  >
+                    <option value="">Select Type</option>
+                    {Object.keys(typeIcons).map(t => <option key={t} value={t}>{typeIcons[t]} {t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1.5">Time (Opt)</label>
+                  <input 
+                    type="time" 
+                    className="w-full bg-white p-3.5 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors"
+                    value={entryForm.time}
+                    onChange={e => setEntryForm({...entryForm, time: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1.5">Description</label>
+                <textarea 
+                  placeholder="What's happening?"
+                  className="w-full bg-white p-4 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors resize-none h-28"
+                  value={entryForm.description}
+                  onChange={e => setEntryForm({...entryForm, description: e.target.value})}
+                />
+              </div>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleAddEntry(editingDay)}
+                className="w-full py-4 bg-[#238a7e] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#238a7e]/20 mt-2"
+              >
+                Save Entry
+              </motion.button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
