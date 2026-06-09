@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Edit3, Calendar, MapPin, X, Info, ChevronRight, Clock } from "lucide-react";
 import axios from "axios";
 
 const Trips = () => {
   const API_URL = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [ongoingTrips, setOngoingTrips] = useState([]);
   const [historyTrips, setHistoryTrips] = useState([]);
-  const [showTripModal, setShowTripModal] = useState(false);
-  const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -60,8 +60,7 @@ const Trips = () => {
 
   const handleAddTrip = () => setShowModal(true);
   const handleTripClick = (trip) => {
-    setSelectedTrip(trip);
-    setShowTripModal(true);
+    navigate(`/trips/${trip.id}`);
   };
 
   const getTripDays = (start, end) => {
@@ -221,7 +220,7 @@ const Trips = () => {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
             >
               <div className="relative z-10">
                 <div className="flex justify-between items-center mb-6">
@@ -296,80 +295,8 @@ const Trips = () => {
         )}
       </AnimatePresence>
 
-      {/* Details Modal */}
-      <AnimatePresence>
-        {showTripModal && selectedTrip && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowTripModal(false)}
-              className="absolute inset-0 bg-[#264653]/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
-            >
-              <div className="h-2 w-16 bg-gray-100 rounded-full mx-auto mb-6" />
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-blue-50 text-[#264653] rounded-2xl">
-                  <MapPin className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-[#264653]">{selectedTrip.title}</h3>
-                  <div className="flex items-center gap-1 text-[#264653]/40 text-xs font-bold uppercase">
-                    Trip Details
-                  </div>
-                </div>
-              </div>
-
-              {selectedTrip.description && (
-                <div className="mb-6">
-                  <p className="text-[#264653]/70 text-sm italic leading-relaxed bg-[#fcf9f2] p-4 rounded-2xl border border-[#264653]/5">
-                    "{selectedTrip.description}"
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-gray-50 p-4 rounded-2xl border border-white">
-                  <div className="text-[10px] font-bold text-[#264653]/40 uppercase mb-1">Duration</div>
-                  <div className="text-lg font-bold text-[#264653]">
-                    {getTripDays(selectedTrip.start_date, selectedTrip.end_date)} Days
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-2xl border border-white">
-                  <div className="text-[10px] font-bold text-[#264653]/40 uppercase mb-1">Status</div>
-                  <div className="text-lg font-bold text-[#238a7e]">Active</div>
-                </div>
-                <div className="col-span-2 flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-white">
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-bold text-[#264653]/40 uppercase">Timeline</div>
-                    <div className="text-xs font-bold text-[#264653]">
-                      {formatDate(selectedTrip.start_date)} - {formatDate(selectedTrip.end_date)}
-                    </div>
-                  </div>
-                  <Calendar className="w-5 h-5 text-[#af8d4a]" />
-                </div>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowTripModal(false)}
-                className="w-full py-4 bg-[#264653] text-white rounded-2xl font-bold shadow-lg"
-              >
-                Done
-              </motion.button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
 
-export default Trips;
+export default Trips;
