@@ -8,14 +8,14 @@ const TripDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL;
-  
+
   const [trip, setTrip] = useState(null);
   const [itinerary, setItinerary] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  const [editingDay, setEditingDay] = useState(null); 
+
+  const [editingDay, setEditingDay] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
-  
+
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [tripForm, setTripForm] = useState({
     title: "",
@@ -23,7 +23,7 @@ const TripDetails = () => {
     startDate: "",
     endDate: ""
   });
-  
+
   const [entryForm, setEntryForm] = useState({
     type: "",
     time: "",
@@ -110,7 +110,9 @@ const TripDetails = () => {
     Ferry: "⛴",
     Food: "🍽",
     Hotel: "🏨",
-    Activity: "📍"
+    Activity: "📍",
+    Sight_Seeing: "👓",
+    Trek: "⛰️"
   };
 
   const handleAddEntry = async (dayNumber) => {
@@ -149,7 +151,7 @@ const TripDetails = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
-      
+
       setEditingDay(null);
       setEditingEntry(null);
       setEntryForm({ type: "", time: "", description: "" });
@@ -174,7 +176,7 @@ const TripDetails = () => {
   const openEditModal = (entry, dayNum) => {
     setEditingEntry(entry);
     setEditingDay(dayNum);
-    
+
     let type = "";
     let time = "";
     let lines = entry.content.split('\n');
@@ -182,7 +184,7 @@ const TripDetails = () => {
 
     lines.forEach(line => {
       let isParsed = false;
-      
+
       for (const t of Object.keys(typeIcons)) {
         if (line.trim() === `${typeIcons[t]} ${t}`) {
           type = t;
@@ -255,9 +257,9 @@ const TripDetails = () => {
     <div className="min-h-screen bg-[#fcf9f2] text-[#264653] pb-32">
       {/* Sticky Header */}
       <div className="sticky top-0 z-50 bg-[#fcf9f2]/80 backdrop-blur-md px-4 py-4 flex items-center gap-4">
-        <motion.button 
+        <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => navigate(-1)} 
+          onClick={() => navigate(-1)}
           className="p-2 bg-white rounded-2xl shadow-sm border border-white/40 hover:bg-gray-50"
         >
           <ChevronLeft className="w-6 h-6" />
@@ -268,9 +270,9 @@ const TripDetails = () => {
       </div>
 
       <div className="px-4 py-4 space-y-8 max-w-2xl mx-auto">
-        
+
         {/* Top Section Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-[2.5rem] p-6 shadow-xl shadow-[#264653]/5 border border-white/40"
@@ -285,7 +287,7 @@ const TripDetails = () => {
                 Trip Overview
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setShowEditTrip(true)}
               className="ml-auto p-2 bg-gray-50 text-[#238a7e] rounded-xl hover:bg-[#238a7e]/10 transition-colors"
             >
@@ -331,17 +333,32 @@ const TripDetails = () => {
         {/* Itinerary Section */}
         <div className="flex flex-col gap-6">
           <h2 className="text-2xl font-extrabold text-[#264653] tracking-tight ml-2">Itinerary</h2>
-          
+
           {finalDaysArray.map((dayNum, index) => {
-            const dayEntries = itinerary.filter(item => item.day_number === dayNum);
+            let dayEntries = itinerary.filter(item => item.day_number === dayNum);
+
+            dayEntries.sort((a, b) => {
+              const getTime = (content) => {
+                const match = content.match(/⏰\s*(\d{1,2}):(\d{2})\s*(AM|PM)/);
+                if (!match) return Infinity;
+                let hrs = parseInt(match[1]);
+                const mins = parseInt(match[2]);
+                const period = match[3];
+                if (period === 'PM' && hrs < 12) hrs += 12;
+                if (period === 'AM' && hrs === 12) hrs = 0;
+                return hrs * 60 + mins;
+              };
+              return getTime(a.content) - getTime(b.content);
+            });
+
             const isEditing = editingDay === dayNum;
 
             return (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                key={dayNum} 
+                key={dayNum}
                 className="bg-white rounded-[2rem] p-6 shadow-lg shadow-[#264653]/5 border border-white/40"
               >
                 <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4">
@@ -349,7 +366,7 @@ const TripDetails = () => {
                     Day {dayNum}
                   </span>
                 </div>
-                
+
                 {dayEntries.length > 0 ? (
                   <div className="flex flex-col mb-6">
                     {dayEntries.map((entry) => (
@@ -361,21 +378,21 @@ const TripDetails = () => {
                           {/* Line */}
                           <div className="w-[2px] bg-gray-100 absolute top-[36px] bottom-[-24px] group-last:hidden z-0" />
                         </div>
-                        
+
                         {/* Content Column */}
                         <div className="flex-1 pb-6">
                           <div className="text-[14px] text-[#264653]/90 whitespace-pre-line leading-[1.8] font-medium bg-gray-50/40 p-4 rounded-[1.25rem] border border-gray-100 shadow-sm relative overflow-hidden transition-all hover:border-[#238a7e]/30">
                             {entry.content}
-                            
+
                             {/* Entry Actions */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
+                              <button
                                 onClick={() => openEditModal(entry, dayNum)}
                                 className="p-1.5 bg-white rounded-lg shadow-sm text-[#238a7e] hover:bg-gray-50 border border-gray-50"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDeleteEntry(entry.id)}
                                 className="p-1.5 bg-white rounded-lg shadow-sm text-red-500 hover:bg-gray-50 border border-gray-50"
                               >
@@ -388,13 +405,13 @@ const TripDetails = () => {
                     ))}
                   </div>
                 ) : (
-                   <div className="text-center py-8 text-sm text-[#264653]/40 bg-gray-50/50 rounded-2xl mb-6 border border-dashed border-gray-200">
-                     No plans for this day yet
-                   </div>
+                  <div className="text-center py-8 text-sm text-[#264653]/40 bg-gray-50/50 rounded-2xl mb-6 border border-dashed border-gray-200">
+                    No plans for this day yet
+                  </div>
                 )}
 
                 {/* Add Button */}
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => {
@@ -438,14 +455,14 @@ const TripDetails = () => {
                   <X className="w-5 h-5 text-[#264653]" />
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1.5">Type (Opt)</label>
-                  <select 
+                  <select
                     className="w-full bg-white px-4 py-3.5 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors"
                     value={entryForm.type}
-                    onChange={e => setEntryForm({...entryForm, type: e.target.value})}
+                    onChange={e => setEntryForm({ ...entryForm, type: e.target.value })}
                   >
                     <option value="">Select Type</option>
                     {Object.keys(typeIcons).map(t => <option key={t} value={t}>{typeIcons[t]} {t}</option>)}
@@ -453,25 +470,25 @@ const TripDetails = () => {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1.5">Time (Opt)</label>
-                  <input 
-                    type="time" 
+                  <input
+                    type="time"
                     className="w-full bg-white px-4 py-3.5 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors"
                     value={entryForm.time}
-                    onChange={e => setEntryForm({...entryForm, time: e.target.value})}
+                    onChange={e => setEntryForm({ ...entryForm, time: e.target.value })}
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-[10px] font-bold text-[#264653]/60 uppercase ml-1 block mb-1.5">Description</label>
-                <textarea 
+                <textarea
                   placeholder="What's happening?"
                   className="w-full bg-white p-4 rounded-xl text-sm border border-gray-200 outline-none focus:border-[#238a7e] transition-colors resize-none h-28"
                   value={entryForm.description}
-                  onChange={e => setEntryForm({...entryForm, description: e.target.value})}
+                  onChange={e => setEntryForm({ ...entryForm, description: e.target.value })}
                 />
               </div>
-              
+
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -515,7 +532,7 @@ const TripDetails = () => {
                   <input
                     type="text"
                     value={tripForm.title}
-                    onChange={e => setTripForm({...tripForm, title: e.target.value})}
+                    onChange={e => setTripForm({ ...tripForm, title: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#238a7e]/30 transition-all"
                   />
                 </div>
@@ -524,7 +541,7 @@ const TripDetails = () => {
                   <label className="text-xs font-bold text-[#264653] uppercase ml-1">Notes</label>
                   <textarea
                     value={tripForm.description}
-                    onChange={e => setTripForm({...tripForm, description: e.target.value})}
+                    onChange={e => setTripForm({ ...tripForm, description: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#238a7e]/30 transition-all h-24 resize-none"
                   />
                 </div>
@@ -535,7 +552,7 @@ const TripDetails = () => {
                     <input
                       type="date"
                       value={tripForm.startDate}
-                      onChange={e => setTripForm({...tripForm, startDate: e.target.value})}
+                      onChange={e => setTripForm({ ...tripForm, startDate: e.target.value })}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#238a7e]/30 transition-all text-sm"
                     />
                   </div>
@@ -544,7 +561,7 @@ const TripDetails = () => {
                     <input
                       type="date"
                       value={tripForm.endDate}
-                      onChange={e => setTripForm({...tripForm, endDate: e.target.value})}
+                      onChange={e => setTripForm({ ...tripForm, endDate: e.target.value })}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#238a7e]/30 transition-all text-sm"
                     />
                   </div>

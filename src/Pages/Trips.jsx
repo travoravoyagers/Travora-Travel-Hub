@@ -79,7 +79,7 @@ const Trips = () => {
 
   const createTrip = async () => {
     try {
-      if (!formData.title || !formData.startDate || !formData.endDate) {
+      if (!formData.title || !formData.startDate) {
         alert("Please fill all required fields");
         return;
       }
