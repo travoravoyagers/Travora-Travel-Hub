@@ -10,6 +10,8 @@ const Trips = () => {
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [ongoingTrips, setOngoingTrips] = useState([]);
   const [historyTrips, setHistoryTrips] = useState([]);
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -24,7 +26,20 @@ const Trips = () => {
 
   useEffect(() => {
     fetchTrips();
+    fetchRequests();
   }, []);
+
+  const fetchRequests = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/trips/requests`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setJoinRequests(res.data.joinRequests);
+      setInvites(res.data.invites);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const fetchTrips = async () => {
     try {
@@ -115,6 +130,18 @@ const Trips = () => {
     }
   };
 
+  const respondToRequest = async (memberId, action) => {
+    try {
+      await axios.post(`${API_URL}/api/trips/requests/${memberId}/respond`, { action }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchRequests();
+      fetchTrips(); 
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const TripSection = ({ title, trips, status }) => (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-4 px-2">
@@ -200,6 +227,74 @@ const Trips = () => {
           <Plus className="w-6 h-6" />
         </motion.button>
       </div>
+
+      {/* Invites Section */}
+      {invites.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <h3 className="font-bold text-lg text-[#264653]">Trip Invites</h3>
+            <span className="bg-[#238a7e]/10 text-[#238a7e] text-[10px] font-bold px-2 py-0.5 rounded-full">
+              {invites.length}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {invites.map((invite) => (
+              <div key={invite.id} className="bg-white rounded-3xl p-5 shadow-lg shadow-[#264653]/5 border border-white/40 flex justify-between items-center">
+                <div>
+                  <h4 className="font-bold text-[#264653] text-sm">You were invited to {invite.trip.title}</h4>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => respondToRequest(invite.id, "accept")} className="px-3 py-1.5 bg-[#238a7e]/10 text-[#238a7e] hover:bg-[#238a7e]/20 rounded-xl text-xs font-bold uppercase tracking-wide transition-colors">
+                    Accept
+                  </button>
+                  <button onClick={() => respondToRequest(invite.id, "reject")} className="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl text-xs font-bold uppercase tracking-wide transition-colors">
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Join Requests Section */}
+      {joinRequests.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <h3 className="font-bold text-lg text-[#264653]">Join Requests</h3>
+            <span className="bg-[#af8d4a]/10 text-[#af8d4a] text-[10px] font-bold px-2 py-0.5 rounded-full">
+              {joinRequests.length}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {joinRequests.map((req) => (
+              <div key={req.id} className="bg-white rounded-3xl p-5 shadow-lg shadow-[#264653]/5 border border-white/40 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
+                    {req.user.profileImage ? (
+                      <img src={req.user.profileImage} alt={req.user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-xs">?</div>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[#264653] text-sm">{req.user.name}</h4>
+                    <p className="text-xs text-[#264653]/60">wants to join <strong>{req.trip.title}</strong></p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => respondToRequest(req.id, "accept")} className="px-3 py-1.5 bg-[#238a7e]/10 text-[#238a7e] hover:bg-[#238a7e]/20 rounded-xl text-xs font-bold uppercase tracking-wide transition-colors">
+                    Accept
+                  </button>
+                  <button onClick={() => respondToRequest(req.id, "reject")} className="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl text-xs font-bold uppercase tracking-wide transition-colors">
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <TripSection title="Ongoing Trips" trips={ongoingTrips} status="ongoing" />
       <TripSection title="Upcoming Adventures" trips={upcomingTrips} status="upcoming" />

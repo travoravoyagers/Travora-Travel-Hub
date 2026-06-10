@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Calendar, MapPin, Plus, X, Edit3, Trash2 } from "lucide-react";
+import { ChevronLeft, Calendar, MapPin, Plus, X, Edit3, Trash2, UserPlus, User } from "lucide-react";
 import axios from "axios";
 
 const TripDetails = () => {
-  const { id } = useParams();
+  const { id, userId } = useParams();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [trip, setTrip] = useState(null);
   const [itinerary, setItinerary] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [myUserId, setMyUserId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [requestStatus, setRequestStatus] = useState(null); // 'sending', 'sent', null
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [friendsToInvite, setFriendsToInvite] = useState([]);
 
   const [editingDay, setEditingDay] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
@@ -40,10 +45,19 @@ const TripDetails = () => {
 
   const fetchTripDetails = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/trips`, {
+      // Get my user id
+      const meRes = await axios.get(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const currentTrip = res.data.trips.find(t => t.id === id);
+      const myId = meRes.data.user.id;
+      setMyUserId(myId);
+
+      // Fetch specific trip by ID
+      const res = await axios.get(`${API_URL}/api/trips/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const currentTrip = res.data.trip;
       if (currentTrip) {
         setTrip(currentTrip);
         setTripForm({
@@ -52,17 +66,35 @@ const TripDetails = () => {
           startDate: currentTrip.start_date ? new Date(currentTrip.start_date).toISOString().split('T')[0] : "",
           endDate: currentTrip.end_date ? new Date(currentTrip.end_date).toISOString().split('T')[0] : ""
         });
+
+        // Determine if admin
+        let adminStatus = false;
+        if (currentTrip.created_by === myId) {
+          adminStatus = true;
+        } else if (currentTrip.members) {
+          const myMember = currentTrip.members.find(m => m.user_id === myId);
+          if (myMember && myMember.role === "admin") {
+            adminStatus = true;
+          }
+        }
+        setIsAdmin(adminStatus);
+
       } else {
         navigate("/home");
       }
     } catch (err) {
       console.log(err);
+      navigate("/home");
     }
   };
 
   const fetchItinerary = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/trips/${id}/itinerary`, {
+      const url = userId
+        ? `${API_URL}/api/user/${userId}/trips/${id}/itinerary`
+        : `${API_URL}/api/trips/${id}/itinerary`;
+      
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setItinerary(res.data.days || []);
@@ -70,6 +102,56 @@ const TripDetails = () => {
       console.log(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestJoin = async () => {
+    setRequestStatus("sending");
+    try {
+      await axios.post(`${API_URL}/api/trips/${id}/request-join`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRequestStatus("sent");
+      alert("Join request sent successfully!");
+    } catch (error) {
+      console.log(error);
+      setRequestStatus(null);
+      alert(error.response?.data?.message || "Error sending request");
+    }
+  };
+
+  const fetchFriendsForInvite = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/friends`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFriendsToInvite(res.data);
+      setShowInviteModal(true);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleInviteFriend = async (friendId) => {
+    try {
+      await axios.post(`${API_URL}/api/trips/${id}/invite`, { friendId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("Invite sent!");
+    } catch (error) {
+      alert(error.response?.data?.message || "Error sending invite");
+    }
+  };
+
+  const handleMakeAdmin = async (memberId) => {
+    try {
+      await axios.put(`${API_URL}/api/trips/${id}/members/${memberId}/admin`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("Member is now an admin!");
+      fetchTripDetails();
+    } catch (error) {
+      alert(error.response?.data?.message || "Error assigning admin");
     }
   };
 
@@ -287,12 +369,14 @@ const TripDetails = () => {
                 Trip Overview
               </div>
             </div>
-            <button
-              onClick={() => setShowEditTrip(true)}
-              className="ml-auto p-2 bg-gray-50 text-[#238a7e] rounded-xl hover:bg-[#238a7e]/10 transition-colors"
-            >
-              <Edit3 className="w-5 h-5" />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowEditTrip(true)}
+                className="ml-auto p-2 bg-gray-50 text-[#238a7e] rounded-xl hover:bg-[#238a7e]/10 transition-colors"
+              >
+                <Edit3 className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           {trip.description && (
@@ -329,6 +413,60 @@ const TripDetails = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Members Section */}
+        {trip.members && trip.members.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-[2.5rem] p-6 shadow-xl shadow-[#264653]/5 border border-white/40"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-xl font-bold text-[#264653]">Voyagers</h3>
+              <span className="bg-[#264653]/10 text-[#264653] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {trip.members.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {trip.members.map(member => (
+                <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+                      {member.user.profileImage ? (
+                        <img src={member.user.profileImage} alt={member.user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">?</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-[#264653] text-sm">{member.user.name}</h4>
+                        {member.role === "admin" && trip.created_by !== member.user.id && (
+                          <span className="bg-[#af8d4a]/10 text-[#af8d4a] text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md tracking-wider">
+                            Admin
+                          </span>
+                        )}
+                        {trip.created_by === member.user.id && (
+                          <span className="bg-[#238a7e]/10 text-[#238a7e] text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md tracking-wider">
+                            Organiser
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {trip.created_by === myUserId && member.role !== "admin" && trip.created_by !== member.user.id && (
+                    <button 
+                      onClick={() => handleMakeAdmin(member.id)}
+                      className="px-3 py-1.5 bg-[#264653] text-white rounded-xl text-xs font-bold shadow-md shadow-[#264653]/20 hover:bg-[#264653]/80 transition-colors"
+                    >
+                      Make Admin
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Itinerary Section */}
         <div className="flex flex-col gap-6">
@@ -385,20 +523,22 @@ const TripDetails = () => {
                             {entry.content}
 
                             {/* Entry Actions */}
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => openEditModal(entry, dayNum)}
-                                className="p-1.5 bg-white rounded-lg shadow-sm text-[#238a7e] hover:bg-gray-50 border border-gray-50"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteEntry(entry.id)}
-                                className="p-1.5 bg-white rounded-lg shadow-sm text-red-500 hover:bg-gray-50 border border-gray-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            {isAdmin && (
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => openEditModal(entry, dayNum)}
+                                  className="p-1.5 bg-white rounded-lg shadow-sm text-[#238a7e] hover:bg-gray-50 border border-gray-50"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteEntry(entry.id)}
+                                  className="p-1.5 bg-white rounded-lg shadow-sm text-red-500 hover:bg-gray-50 border border-gray-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -411,17 +551,19 @@ const TripDetails = () => {
                 )}
 
                 {/* Add Button */}
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => {
-                    setEditingDay(dayNum);
-                    setEntryForm({ type: "", time: "", description: "" });
-                  }}
-                  className="w-full py-4 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 text-[#264653]/60 rounded-2xl hover:border-[#238a7e]/50 hover:text-[#238a7e] hover:bg-[#238a7e]/5 transition-all text-sm font-bold"
-                >
-                  <Plus className="w-5 h-5" /> Add Entry
-                </motion.button>
+                {isAdmin && (
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => {
+                      setEditingDay(dayNum);
+                      setEntryForm({ type: "", time: "", description: "" });
+                    }}
+                    className="w-full py-4 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 text-[#264653]/60 rounded-2xl hover:border-[#238a7e]/50 hover:text-[#238a7e] hover:bg-[#238a7e]/5 transition-all text-sm font-bold"
+                  >
+                    <Plus className="w-5 h-5" /> Add Entry
+                  </motion.button>
+                )}
 
               </motion.div>
             );
@@ -580,6 +722,100 @@ const TripDetails = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Action Buttons */}
+      <motion.div 
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-6 left-0 w-full z-40 px-6"
+      >
+        <div className="max-w-md mx-auto">
+          {userId ? (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleRequestJoin}
+              disabled={requestStatus === "sent" || requestStatus === "sending"}
+              className={`w-full py-4 rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 transition-colors ${
+                requestStatus === "sent" 
+                  ? "bg-gray-100 text-gray-400" 
+                  : "bg-[#238a7e] text-white hover:bg-[#1d7369] shadow-[#238a7e]/30"
+              }`}
+            >
+              <Plus className="w-5 h-5" />
+              {requestStatus === "sent" ? "Request Sent" : "Request to Join"}
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={fetchFriendsForInvite}
+              className="w-full py-4 rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 transition-colors bg-[#264653] text-white hover:bg-[#1d3540] shadow-[#264653]/30"
+            >
+              <UserPlus className="w-5 h-5" />
+              Invite Friends
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Invite Friends Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowInviteModal(false)}
+              className="absolute inset-0 bg-[#264653]/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[80vh]"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-[#264653]">Invite Friends</h3>
+                <button onClick={() => setShowInviteModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                  <X className="w-6 h-6 text-[#264653]" />
+                </button>
+              </div>
+
+              {friendsToInvite.length === 0 ? (
+                <div className="text-center py-8 text-sm text-[#264653]/40 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  You have no friends to invite yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {friendsToInvite.map(friend => (
+                    <div key={friend.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+                          {friend.profileImage ? (
+                            <img src={friend.profileImage} alt={friend.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-5 h-5 m-2.5 text-gray-400" />
+                          )}
+                        </div>
+                        <span className="font-bold text-[#264653] text-sm">{friend.name}</span>
+                      </div>
+                      <button 
+                        onClick={() => handleInviteFriend(friend.id)}
+                        className="px-4 py-2 bg-[#238a7e]/10 text-[#238a7e] hover:bg-[#238a7e]/20 rounded-full text-xs font-bold uppercase tracking-wide transition-colors"
+                      >
+                        Invite
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
